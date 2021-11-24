@@ -1,4 +1,4 @@
-const cacheName = 'ginkobus-v';
+const cacheName = 'ginkobus-v1';
 const appFiles = [
 	'index.html',
 	'app.js',
