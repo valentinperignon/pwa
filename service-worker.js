@@ -1,4 +1,4 @@
-const cacheName = 'ginkobus-v1';
+const cacheName = 'ginkobus-v';
 const appFiles = [
 	'index.html',
 	'app.js',
@@ -28,17 +28,35 @@ self.addEventListener('activate', (e) => {
   });
 
 self.addEventListener('fetch', (e) => {
-	e.respondWith((async () => {
-		const resourceFromCache = await caches.match(e.request);
-		console.info(`[Service Worker] Fetching resource: ${e.request.url}`);
-		if (resourceFromCache) {
-			return resourceFromCache;
-		}
+	if (e.request.url.includes("ginkobus-pwa")) {
+		e.respondWith(networkFirstStrategy(e));
+	} else {
+		e.respondWith(cacheFirstStrategy(e));
+	}
+});
 
+async function cacheFirstStrategy(e) {
+	const resourceFromCache = await caches.match(e.request);
+	console.info(`[Service Worker] Fetching resource from cache: ${e.request.url}`);
+	if (resourceFromCache) {
+		return resourceFromCache;
+	}
+
+	const response = await fetch(e.request);
+	const cache = await caches.open(cacheName);
+	console.info(`[Service Worker] Caching new resource: ${e.request.url}`);
+	cache.put(e.request, response.clone());
+	return response;
+}
+
+async function networkFirstStrategy(e) {
+	const cache = await caches.open(cacheName);
+	const resourceFromCache = await cache.match(e.request);
+	try {
 		const response = await fetch(e.request);
-		const cache = await caches.open(cacheName);
-		console.info(`[Service Worker] Caching new resource: ${e.request.url}`);
 		cache.put(e.request, response.clone());
 		return response;
-	})());
-});
+	} catch {
+		return resourceFromCache;
+	}
+}
