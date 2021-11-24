@@ -18,6 +18,15 @@ self.addEventListener('install', (e) => {
 	})());
 });
 
+self.addEventListener('activate', (e) => {
+	e.waitUntil(caches.keys().then((keyList) => {
+	  return Promise.all(keyList.map((key) => {
+		if (key === cacheName) return;
+		return caches.delete(key);
+	  }));
+	}));
+  });
+
 self.addEventListener('fetch', (e) => {
 	e.respondWith((async () => {
 		const resourceFromCache = await caches.match(e.request);
