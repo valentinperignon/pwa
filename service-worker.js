@@ -17,3 +17,7 @@ self.addEventListener('install', (e) => {
 		await cache.addAll(appFiles);
 	})());
 });
+
+self.addEventListener('fetch', (e) => {
+	console.log(`[Service Worker] Fetched resource ${e.request.url}`);
+});
