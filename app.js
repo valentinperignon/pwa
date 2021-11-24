@@ -10,8 +10,6 @@ if ('serviceWorker' in navigator) {
  *                                                                      *
  ************************************************************************/
 document.addEventListener("DOMContentLoaded", function (_e) {
-
-    
     /******************************************************************
             Fonctions à compléter dans la dernière partie du TP 
     ******************************************************************/
@@ -21,13 +19,45 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         if ("geolocation" in navigator) {
             var btnGeoloc = document.querySelector("#bcStations .btnGeoloc");
             btnGeoloc.classList.toggle("active");
-            // TODO
+            
+            if (btnGeoloc.classList.contains('active')) {
+                navigator.geolocation.getCurrentPosition(
+                    getUserPosition,
+                    () => console.error("Impossible de réupérer la position")
+                );
+            } else {
+                fSort = null;
+            }
         }
         else {
             alert("Votre appareil ne supporte pas la géolocalisation.");    
         }
     }
-    
+
+    function getUserPosition({ coords }) {
+        for (const [key, value] of Object.entries(stations)) {
+            stations[key].distance = (getDistance(coords.latitude, coords.longitude, value.lat, value.lon) / 1000).toFixed(2);
+        }
+        fSort = (first, second) => {
+            return stations[first].distance - stations[second].distance;
+        }
+        afficherStations();
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // metres
+        const φ1 = lat1 * Math.PI/180; // φ, λ in radians
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c;
+    }
     
     /******************************************************************
                             Gestion des événements 
@@ -64,7 +94,6 @@ document.addEventListener("DOMContentLoaded", function (_e) {
     }, {
         passive: true
     });
-
     
     /** 
      *     Swipe left-right dans les horaires pour passer au précédent/suivant
@@ -116,7 +145,6 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         // update display
         document.querySelector('aside input[value="' + index + '"]').checked = true;
     }
-
 
     /** 
      *  Clic dans la zone principale (blocs #lignes, #stations)
@@ -200,14 +228,10 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         document.body.height = window.innerHeight;
     }
     window.onresize(); // called to initially set the height.
-
-    
-    
     
     /******************************************************************
                             Modèle de données 
     ******************************************************************/
-    
 
     /** 
      *  Objet permettant la gestion des favoris (station, ligne, direction)
@@ -275,7 +299,6 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         }
     };
     
-    
     // URL où aller chercher les infos
     let URL = "https://ginkobus-pwa.herokuapp.com"; 
 
@@ -284,17 +307,14 @@ document.addEventListener("DOMContentLoaded", function (_e) {
     // Ensemble de lignes 
     var lignes = {};
 
-    
     /******************************************************************
                         Fonctions utiles 
     ******************************************************************/
-
                 
     /** 
      *  Initialisation avec des appels asynchrones
      */
     (async function init() {
-
         document.querySelector("#bcStart p").innerHTML = "Chargement des lignes...";
                 
         // récupère les lignes 
@@ -318,6 +338,8 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         // lecture du JSON et affichage 
         stations = await response.json();
         afficherStations();
+
+        afficherMap();
                         
         // fin du chargement
         document.querySelector("#bcStart h2").style.display = "block";
@@ -329,8 +351,6 @@ document.addEventListener("DOMContentLoaded", function (_e) {
             document.getElementById("radLignes").checked = true;
         }
     })();
-    
-    
     
     /**
      *  Affichage des lignes dans le bloc #bcLignes
@@ -359,8 +379,6 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         r += "</div>";
         document.getElementById("bcLignes").innerHTML = r;
     }
-
-
 
     /**
      *  Affichage des stations dans le bloc #bcStations
@@ -398,6 +416,25 @@ document.addEventListener("DOMContentLoaded", function (_e) {
         remplirStations();
     }
 
+    function afficherMap() {
+        document.getElementById("bcMap").innerHTML = '<div id="map" style="width: 100%; height: 93vh; padding: 0; margin: 0;"></div>';
+
+        const mymap = L.map('map', { 
+            center: [47.2364, 5.987499], 
+            zoom: 13 
+        });
+    
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { 
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(mymap);
+
+        for (const [key, value] of Object.entries(stations)) {
+            L.marker([value.lat, value.lon])
+                .addTo(mymap)
+                .bindPopup(`Station ${value.nom}`);
+        }
+    }
 
     /************************************************************************* 
             Fonctions utilisées pour remplir la liste des stations 
@@ -416,7 +453,6 @@ document.addEventListener("DOMContentLoaded", function (_e) {
      *  @return boolean         true si la station doit être affichée, false sinon
      */
     var fFilter = null;
-    
     
     /** 
      *  Fonction permettant de remplir la liste des stations de #bcStations :
@@ -590,5 +626,4 @@ document.addEventListener("DOMContentLoaded", function (_e) {
             document.body.classList.remove("fade");
         });
     }
-
 });

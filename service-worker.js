@@ -50,7 +50,7 @@ async function cacheFirstStrategy(e) {
 }
 
 async function networkFirstStrategy(e) {
-	const cache = await caches.open(cacheName);
+	const cache = await  caches.open(cacheName);
 	const resourceFromCache = await cache.match(e.request);
 	try {
 		const response = await fetch(e.request);
